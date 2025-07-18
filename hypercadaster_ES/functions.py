@@ -39,7 +39,7 @@ def download(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
                               file="ine_inspire_codes.xlsx")
 
     # Filter which geographical area to download
-    if ine_codes is not None and cadaster_codes is not None:
+    if ine_codes is not  None and cadaster_codes is not None:
         raise ValueError("Municipality INE codes (ine_codes) or cadaster codes (cadaster_codes) should be provided, not both!")
     elif ine_codes is None and cadaster_codes is None:
         if province_codes is None:
@@ -47,7 +47,7 @@ def download(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
         else:
             municipalities = utils.list_municipalities(
                 province_codes=province_codes, echo=False)
-            cadaster_codes = [item['name'].split("-") [0] for item in municipalities]
+            cadaster_codes = [item['name'].split("-")[0] for item in municipalities]
             ine_codes = utils.cadaster_to_ine_codes(utils.cadaster_dir_(wd), cadaster_codes)
     elif ine_codes is None:
         ine_codes = utils.cadaster_to_ine_codes(utils.cadaster_dir_(wd), cadaster_codes)
@@ -61,10 +61,10 @@ def download(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
     # Districts and neighborhoods definition are only available for the city of Barcelona
     if '08019' in ine_codes and neighborhood_layer:
         downloaders.download_file(dir=utils.districts_dir_(wd),
-                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/808daafa-d9ce-48c0-\"\n                                      "\n                                      "925a-fa5afdb1ed41/resource/576bc645-9481-4bc4-b8bf-f5972c20df3f/download",
+                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/808daafa-d9ce-48c0-925a-fa5afdb1ed41/resource/576bc645-9481-4bc4-b8bf-f5972c20df3f/download",
                                   file="districts.csv")
         downloaders.download_file(dir=utils.neighborhoods_dir_(wd),
-                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/808daafa-d9ce-48c0-\"\n                                      "\n                                      "925a-fa5afdb1ed41/resource/b21fa550-56ea-4f4c-9adc-b8009381896e/download",
+                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/808daafa-d9ce-48c0-925a-fa5afdb1ed41/resource/b21fa550-56ea-4f4c-9adc-b8009381896e/download",
                                   file="neighbourhoods.csv")
     # Postal codes
     if postal_code_layer or elevation_layer:
@@ -81,20 +81,20 @@ def download(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
     # OpenDataBarcelona
     if '08019' in ine_codes and open_data_layers:
         downloaders.download_file(dir=utils.open_data_dir_(wd),
-                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/3dc277bf-ff89-4b49-8f\"\n                                      "\n                                      "29-48a1122bb813/resource/2e123ea9-1819-46cf-a545-be61151fa97d/download",
+                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/3dc277bf-ff89-4b49-8f29-48a1122bb813/resource/2e123ea9-1819-46cf-a545-be61151fa97d/download",
                                   file="barcelona_establishments.csv")
         downloaders.download_file(dir=utils.open_data_dir_(wd),
-                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/fe177673-0f83-42e7-b3\"\n                                      "\n                                      "5a-ddea901be8bc/resource/99764d55-b1be-4281-b822-4277442cc721/download/22093\"\n                                      "\n                                      "0_censcomercialbcn_opendata_2022_v10_mod.csv",
+                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/fe177673-0f83-42e7-b35a-ddea901be8bc/resource/99764d55-b1be-4281-b822-4277442cc721/download/220930_censcomercialbcn_opendata_2022_v10_mod.csv",
                                   file="barcelona_ground_premises.csv")
         downloaders.download_file(dir=utils.open_data_dir_(wd),
-                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/6b5cfa7b-1d8d-45f0-990a-\"\n                                      "\n                                      "d1844d43ffd1/resource/26c6be33-44f5-4596-8a29-7ac152546ca7/download",
+                                  url="https://opendata-ajuntament.barcelona.cat/data/dataset/6b5cfa7b-1d8d-45f0-990a-d1844d43ffd1/resource/26c6be33-44f5-4596-8a29-7ac152546ca7/download",
                                   file="barcelona_carrerer.zip")
         try:
             with ZipFile(f"{utils.open_data_dir_(wd)}/barcelona_carrerer.zip", 'r') as zip:
                 zip.extractall(utils.open_data_dir_(wd))
                 os.rename(f"{utils.open_data_dir_(wd)}/Adreces_elementals.gpkg",
                           f"{utils.open_data_dir_(wd)}/barcelona_carrerer.gpkg")
-                os.remove(f"{utils.open_data_dir_(wd)}/bar: barcelona_carrerer.zip")
+                os.remove(f"{utils.open_data_dir_(wd)}/barcelona_carrerer.zip")
         except BadZipFile:
             os.remove(f"{utils.open_data_dir_(wd)}/barcelona_carrerer.zip")
 
@@ -115,7 +115,7 @@ def merge(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
         else:
             municipalities = utils.list_municipalities(
                 province_codes=province_codes, echo=False)
-            cadaster_codes = [item['name'].split("-") [0] for item in municipalities]
+            cadaster_codes = [item['name'].split("-")[0] for item in municipalities]
     elif cadaster_codes is None:
         cadaster_codes = utils.ine_to_cadaster_codes(utils.cadaster_dir_(wd), ine_codes)
 
@@ -145,7 +145,7 @@ def merge(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
     if neighborhood_layer:
         gdf = mergers.join_by_neighbourhoods(
             gdf = gdf,
-            neighbourhoods_dir=utils.neighborhoods_dir_(wd))
+            neighbourhoods_dir=utils.neighbourhoods_dir_(wd))
     if postal_code_layer:
         gdf = mergers.join_by_postal_codes(
             gdf = gdf,
@@ -160,4 +160,3 @@ def merge(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
     gdf = gdf.drop_duplicates()
 
     return gdf
-

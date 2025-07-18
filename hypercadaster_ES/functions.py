@@ -277,3 +277,4 @@ def merge(wd, province_codes=None, ine_codes=None, cadaster_codes=None,
         gdf.drop("index", axis=1, inplace=True)
 
     return gdf
+

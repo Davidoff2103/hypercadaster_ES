@@ -6,24 +6,53 @@ import matplotlib.pyplot as plt
 # Añadir street width real using parcels geometries
 # Añadir rehabilitación integral
 # Mirar casos vacios en los resultados de orientación: 9505427DF2890F
-def input_files_for_IREC_simulations(gdf):
 
+def input_files_for_IREC_simulations(gdf):
+    """
+    Process a GeoDataFrame to extract building characteristics for IREC simulations.
+    
+    Parameters:
+        gdf (GeoDataFrame): Input GeoDataFrame containing building data
+    
+    Returns:
+        pd.DataFrame: Processed DataFrame with building characteristics suitable for IREC simulations
+    """
+    # Remove duplicate building references and filter residential buildings
     gdf_filt = gdf.drop_duplicates(subset="building_reference")
     gdf_filt = gdf_filt[gdf_filt["br__building_spaces"].apply(lambda d: isinstance(d, dict) and "Residential" in d)]
 
     def classify_building_type(spaces, detached):
+        """
+        Classify building type based on residential units and detachment status.
+        
+        Parameters:
+            spaces (dict): Dictionary of building spaces
+            detached (bool): Whether the building is detached
+        
+        Returns:
+            str: Building type classification (SF, MFI, MFNI, NR)
+        """
         residential_units = spaces.get("Residential", 0)
         non_residential_units = sum(v for k, v in spaces.items() if k != "Residential")
+        
         if residential_units == 1:
-            return "SF"
+            return "SF"  # Single Family
         elif residential_units > 1:
-            return "MFI" if detached else "MFNI"
+            return "MFI" if detached else "MFNI"  # Multi-Family Independent / Non-Independent
         elif residential_units == 0:
-            return "NR"
+            return "NR"  # Non-Residential
         return "Unknown"
 
-
     def calculate_typology_percentages(areas):
+        """
+        Calculate percentage of different building uses.
+        
+        Parameters:
+            areas (dict): Dictionary of building areas by use type
+        
+        Returns:
+            dict: Dictionary with percentage of different building uses
+        """
         if not isinstance(areas, dict):
             areas = areas.values[0]
         total = sum(areas.values())
@@ -41,6 +70,16 @@ def input_files_for_IREC_simulations(gdf):
         }
 
     def extract_floors_by_use(floor_data, use_type):
+        """
+        Extract floors associated with a specific building use type.
+        
+        Parameters:
+            floor_data (dict): Dictionary of floor data by building use
+            use_type (str): Building use type to extract floors for
+        
+        Returns:
+            list: Sorted list of floor numbers with non-zero area
+        """
         return sorted([
             int(f) for building_use, floors in floor_data.items()
             if building_use == use_type
@@ -49,19 +88,33 @@ def input_files_for_IREC_simulations(gdf):
         ])
 
     def process_row(row):
+        """
+        Process a single row of the GeoDataFrame to extract building characteristics.
+        
+        Parameters:
+            row (pd.Series): Row of the GeoDataFrame
+        
+        Returns:
+            pd.Series: Processed building characteristics
+        """
         try:
             building_spaces = row["br__building_spaces"]
             area_wo_communal = row["br__area_without_communals"]
             area_w_communal = row["br__area_with_communals"]
             floor_data = row["br__area_with_communals_by_floor"]
             eff_years = row["br__mean_building_space_effective_year"]
-            year_of_construction = row["year_of_construction"] if pd.notna(row["year_of_construction"]) else eff_years["Residential"]
-            if year_of_construction<1850 and eff_years["Residential"]>1850:
+            year_of_construction = row["year_of_construction"] if pd.notna(row["year_of_construction"])
+            else eff_years["Residential"]
+            
+            # Handle edge case where construction year is inconsistent with effective years
+            if year_of_construction < 1850 and eff_years["Residential"] > 1850:
                 year_of_construction = eff_years["Residential"]
-            elif year_of_construction<1850:
+            elif year_of_construction < 1850:
                 year_of_construction = 1850
+                
             avg_eff_year = np.mean(list(eff_years.values())) if eff_years else row["year_of_construction"]
             use_percentages = calculate_typology_percentages(area_w_communal)
+            
             return pd.Series({
                 "BuildingReference": row["building_reference"],
                 "BuildingType": classify_building_type(building_spaces, row["br__detached"]),
@@ -86,14 +139,20 @@ def input_files_for_IREC_simulations(gdf):
                 "NumberOfFloorsBelowGround": min([min(floors.keys()) for floors in list(floor_data.values())])
             })
         except Exception as e:
-            print((row["building_reference"],e))
+            print((row["building_reference"], e))
 
-
-    # Assuming `df` is your original DataFrame
+    # Process all rows in the filtered GeoDataFrame
     new_df = gdf_filt.apply(process_row, axis=1)
     return new_df
 
 def converter_():
+    """
+    Create a converter structure for demographic data.
+    
+    Returns:
+        dict: Dictionary structure with keys representing different demographic categories
+              and empty dictionaries as placeholders for data
+    """
     return {
         'Edad': {
             'Menos de 30 años': {},
@@ -157,9 +216,17 @@ def converter_():
     }
 
 def plot_weather_stations(gdf, weather_clusters_column, filename):
+    """
+    Plot buildings colored by weather cluster.
+    
+    Parameters:
+        gdf (GeoDataFrame): GeoDataFrame containing building data
+        weather_clusters_column (str): Name of the column with weather cluster information
+        filename (str): Output filename for the plot image
+    """
     fig, ax = plt.subplots(figsize=(15, 12))
 
-    # Correct GeoPandas plotting syntax
+    # Plot buildings with colors based on weather cluster
     gdf.plot(
         ax=ax,
         column=weather_clusters_column,
@@ -171,6 +238,7 @@ def plot_weather_stations(gdf, weather_clusters_column, filename):
         edgecolor='black'
     )
 
+    # Add plot labels and formatting
     ax.set_title('Buildings Colored by WeatherCluster', fontsize=14)
     ax.set_xlabel('Longitude')
     ax.set_ylabel('Latitude')

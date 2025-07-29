@@ -11,27 +11,11 @@ import sys
 import numpy as np
 import regex as re
 
-"""
-Make GeoDataFrame geometries valid
-"""
 def make_valid(gdf):
     gdf.geometry = gdf.geometry.make_valid()
     return gdf
 
-"""
-Get cadaster addresses from GML files
 
-Parameters:
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-    directions_from_CAT_files (bool): Whether to include directions from CAT files
-    CAT_files_dir (str): Directory containing CAT files
-    directions_from_open_data (bool): Whether to include directions from open data
-    open_data_layers_dir (str): Directory containing open data layers
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with address information
-"""
 def get_cadaster_address(cadaster_dir, cadaster_codes, directions_from_CAT_files=True, CAT_files_dir="CAT_files",
                          directions_from_open_data=True, open_data_layers_dir="open_data"):
     sys.stderr.write(f"\nReading the cadaster addresses for {len(cadaster_codes)} municipalities\n")
@@ -225,25 +209,7 @@ def get_cadaster_address(cadaster_dir, cadaster_codes, directions_from_CAT_files
 
     return gdf
 
-"""
-Join cadaster buildings with additional data
 
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-    results_dir (str): Directory for results
-    open_street_dir (str): Directory for open street data
-    building_parts_plots (bool): Whether to generate plots
-    building_parts_inference (bool): Whether to perform inference
-    building_parts_inference_using_CAT_files (bool): Whether to use CAT files for inference
-    open_data_layers (bool): Whether to use open data layers
-    open_data_layers_dir (str): Directory containing open data layers
-    CAT_files_dir (str): Directory containing CAT files
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with building data
-"""
 def join_cadaster_building(gdf, cadaster_dir, cadaster_codes, results_dir, open_street_dir, building_parts_plots=False,
                            building_parts_inference=False, building_parts_inference_using_CAT_files=False,
                            open_data_layers=False, open_data_layers_dir=None, CAT_files_dir=None):
@@ -421,17 +387,7 @@ def join_cadaster_building(gdf, cadaster_dir, cadaster_codes, results_dir, open_
 
     return pd.merge(gdf, building_gdf, left_on="building_reference", right_on="building_reference", how="left")
 
-"""
-Join cadaster zones with main data
 
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with zone information
-"""
 def join_cadaster_zone(gdf, cadaster_dir, cadaster_codes):
 
     sys.stderr.write(f"\nJoining the cadaster zones for {len(cadaster_codes)} municipalities\n")
@@ -535,19 +491,6 @@ def join_cadaster_zone(gdf, cadaster_dir, cadaster_codes):
 
     return joined
 
-"""
-Join cadaster parcels with buildings
-
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-    how (str): Type of join (default 'left')
-
-Returns:
-    gdf_joined (GeoDataFrame): GeoDataFrame with parcel information
-    parcel_gdf (GeoDataFrame): GeoDataFrame with parcel geometries
-"""
 def join_cadaster_parcel(gdf, cadaster_dir, cadaster_codes, how="left"):
 
     for code in cadaster_codes:
@@ -575,40 +518,12 @@ def join_cadaster_parcel(gdf, cadaster_dir, cadaster_codes, how="left"):
 
     return (gdf_joined,parcel_gdf)
 
-"""
-Join administrative divisions naming
-
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with administrative information
-"""
 def join_adm_div_naming(gdf, cadaster_dir, cadaster_codes):
 
     return pd.merge(gdf, utils.get_administrative_divisions_naming(cadaster_dir, cadaster_codes=cadaster_codes),
                     left_on="cadaster_code", right_on="cadaster_code", how="left")
 
-"""
-Join all cadaster data
 
-Parameters:
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes
-    results_dir (str): Directory for results
-    open_street_dir (str): Directory for open street data
-    building_parts_plots (bool): Whether to generate plots
-    building_parts_inference (bool): Whether to perform inference
-    use_CAT_files (bool): Whether to use CAT files
-    open_data_layers (bool): Whether to use open data layers
-    open_data_layers_dir (str): Directory containing open data layers
-    CAT_files_dir (str): Directory containing CAT files
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with all joined data
-"""
 def join_cadaster_data(cadaster_dir, cadaster_codes, results_dir, open_street_dir, building_parts_plots=False,
                        building_parts_inference=False, use_CAT_files=False,
                        open_data_layers=False, open_data_layers_dir=None, CAT_files_dir = None):
@@ -648,16 +563,7 @@ def join_cadaster_data(cadaster_dir, cadaster_codes, results_dir, open_street_di
 
     return gdf
 
-"""
-Join Digital Elevation Model (DEM) raster data
 
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    raster_dir (str): Directory containing raster files
-
-Returns:
-    gdf (GeoDataFrame): GeoDataFrame with elevation data
-"""
 def join_DEM_raster(gdf, raster_dir):
 
     sys.stderr.write(f"\nJoining the Digital Elevation Model information\n")
@@ -673,19 +579,6 @@ def join_DEM_raster(gdf, raster_dir):
 
     return gdf
 
-"""
-Join census tract data
-
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    census_tract_dir (str): Directory containing census tract data
-    columns (dict): Columns mapping
-    geometry_column (str): Geometry column name
-    year (int): Census year
-
-Returns:
-    census_gdf (GeoDataFrame): GeoDataFrame with census tract data
-"""
 def join_by_census_tracts(gdf, census_tract_dir, columns=None, geometry_column = "census_geometry", year = 2022):
 
     if columns is None:
@@ -705,18 +598,7 @@ def join_by_census_tracts(gdf, census_tract_dir, columns=None, geometry_column =
 
     return census_gdf
 
-"""
-Join neighborhood data
 
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    neighbourhoods_dir (str): Directory containing neighborhood data
-    columns (dict): Columns mapping
-    geometry_column (str): Geometry column name
-
-Returns:
-    neighbourhoods_gdf (GeoDataFrame): GeoDataFrame with neighborhood data
-"""
 def join_by_neighbourhoods(gdf, neighbourhoods_dir, columns=None, geometry_column="neighborhood_geometry"):
 
     if columns is None:
@@ -739,18 +621,7 @@ def join_by_neighbourhoods(gdf, neighbourhoods_dir, columns=None, geometry_colum
 
     return neighbourhoods_gdf
 
-"""
-Join postal code data
 
-Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame
-    postal_codes_dir (str): Directory containing postal code data
-    columns (dict): Columns mapping
-    geometry_column (str): Geometry column name
-
-Returns:
-    postal_codes_gdf (GeoDataFrame): GeoDataFrame with postal code data
-"""
 def join_by_postal_codes(gdf, postal_codes_dir, columns=None, geometry_column="postal_code_geometry"):
 
     if columns is None:

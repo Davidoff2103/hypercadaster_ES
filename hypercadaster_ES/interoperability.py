@@ -1,16 +1,11 @@
-## Added docstrings and comments for better readability and documentation
+'''Add docstring here
 
-```python
-# Your modified code with added comments and docstrings goes here
-# Example:
-# 
-# @brief: Description of the function
-# @param: Parameters description
-# @return: Return value description
-# 
+This module handles interoperability features...'''
+
+# Add comments here
+# Function comment example:
 # def example_function():
 #     """
 #     Description of the function.
 #     """
 #     pass
-# """

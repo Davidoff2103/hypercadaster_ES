@@ -2,45 +2,91 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# TODO:
-# Añadir street width real using parcels geometries
-# Añadir rehabilitación integral
-# Mirar casos vacios en los resultados de orientación: 9505427DF2890F
 def input_files_for_IREC_simulations(gdf):
+    """
+    Process building data for IREC simulations
 
+    Parameters:
+    gdf (GeoDataFrame): Input GeoDataFrame containing building data
+
+    Returns:
+    pd.DataFrame: Processed DataFrame with building characteristics
+    """
+    
+    # Remove duplicate buildings based on building reference
     gdf_filt = gdf.drop_duplicates(subset="building_reference")
-    gdf_filt = gdf_filt[gdf_filt["br__building_spaces"].apply(lambda d: isinstance(d, dict) and "Residential" in d)]
+    
+    # Filter only residential buildings
+    gdf_filt = gdf_filt[gdf_filt["br__building_spaces"].apply(
+        lambda d: isinstance(d, dict) and "Residential" in d
+    )]
 
     def classify_building_type(spaces, detached):
+        """
+        Classify building type based on space distribution
+
+        Parameters:
+        spaces (dict): Dictionary of building spaces
+        detached (bool): Whether the building is detached
+
+        Returns:
+        str: Building type classification (SF, MFI, MFNI, NR)
+        """
         residential_units = spaces.get("Residential", 0)
         non_residential_units = sum(v for k, v in spaces.items() if k != "Residential")
+        
         if residential_units == 1:
-            return "SF"
+            return "SF"  # Single-family
         elif residential_units > 1:
-            return "MFI" if detached else "MFNI"
+            return "MFI" if detached else "MFNI"  # Multi-family
         elif residential_units == 0:
-            return "NR"
+            return "NR"  # Non-residential
         return "Unknown"
 
-
     def calculate_typology_percentages(areas):
+        """
+        Calculate area percentages for different building uses
+
+        Parameters:
+        areas (dict or pd.Series): Area distribution by use type
+
+        Returns:
+        dict: Percentage distribution of different building uses
+        """
         if not isinstance(areas, dict):
             areas = areas.values[0]
+        
         total = sum(areas.values())
+        
         return {
-            "BuildingResidentialArea": areas.get("Residential", 0) / total * 100 if total else 0,
-            "BuildingCommercialArea": areas.get("Commercial", 0) / total * 100 if total else 0,
-            "BuildingOfficesArea": areas.get("Offices", 0) / total * 100 if total else 0,
-            "BuildingParkingArea": areas.get("Warehouse - Parking", 0) / total * 100 if total else 0,
+            "BuildingResidentialArea": (areas.get("Residential", 0) / total * 100 
+                                      if total else 0),
+            "BuildingCommercialArea": (areas.get("Commercial", 0) / total * 100 
+                                    if total else 0),
+            "BuildingOfficesArea": (areas.get("Offices", 0) / total * 100 
+                                  if total else 0),
+            "BuildingParkingArea": (areas.get("Warehouse - Parking", 0) / total * 100 
+                                  if total else 0),
             "BuildingOtherUsesArea": 100 - (
-                    areas.get("Residential", 0) +
-                    areas.get("Commercial", 0) +
-                    areas.get("Offices", 0) +
-                    areas.get("Warehouse - Parking", 0)
-            ) / total * 100 if total else 0
+                (areas.get("Residential", 0) + 
+                areas.get("Commercial", 0) + 
+                areas.get("Offices", 0) + 
+                areas.get("Warehouse - Parking", 0)) / total * 100 
+                if total else 0
+            )
         }
 
     def extract_floors_by_use(floor_data, use_type):
+        """
+        Extract floors by use type
+
+        Parameters:
+        floor_data (dict): Dictionary containing floor data by use
+        use_type (str): Type of use to extract floors for
+
+        Returns:
+        list: List of floors (as integers) for the specified use type
+        """
         return sorted([
             int(f) for building_use, floors in floor_data.items()
             if building_use == use_type
@@ -49,19 +95,37 @@ def input_files_for_IREC_simulations(gdf):
         ])
 
     def process_row(row):
+        """
+        Process a single row of building data
+
+        Parameters:
+        row (pd.Series): Single row of building data
+
+        Returns:
+        pd.Series: Processed data for the building
+        """
         try:
             building_spaces = row["br__building_spaces"]
             area_wo_communal = row["br__area_without_communals"]
             area_w_communal = row["br__area_with_communals"]
             floor_data = row["br__area_with_communals_by_floor"]
             eff_years = row["br__mean_building_space_effective_year"]
-            year_of_construction = row["year_of_construction"] if pd.notna(row["year_of_construction"]) else eff_years["Residential"]
-            if year_of_construction<1850 and eff_years["Residential"]>1850:
+            
+            # Determine year of construction
+            year_of_construction = row["year_of_construction"] if pd.notna(
+                row["year_of_construction"]
+            ) else eff_years["Residential"]
+            
+            # Handle historical data corrections
+            if year_of_construction < 1850 and eff_years["Residential"] > 1850:
                 year_of_construction = eff_years["Residential"]
-            elif year_of_construction<1850:
+            elif year_of_construction < 1850:
                 year_of_construction = 1850
+            
             avg_eff_year = np.mean(list(eff_years.values())) if eff_years else row["year_of_construction"]
+            
             use_percentages = calculate_typology_percentages(area_w_communal)
+            
             return pd.Series({
                 "BuildingReference": row["building_reference"],
                 "BuildingType": classify_building_type(building_spaces, row["br__detached"]),
@@ -76,7 +140,8 @@ def input_files_for_IREC_simulations(gdf):
                 "UsefulResidentialArea": area_wo_communal.get("Residential", 0),
                 "YearOfConstruction": year_of_construction,
                 "BuildingWasRetroffited": year_of_construction < avg_eff_year,
-                "YearOfRetroffiting": avg_eff_year if year_of_construction < avg_eff_year else year_of_construction,
+                "YearOfRetroffiting": avg_eff_year if year_of_construction < avg_eff_year 
+                else year_of_construction,
                 **use_percentages,
                 "BuildingResidentialFloors": extract_floors_by_use(floor_data, "Residential"),
                 "BuildingCommercialFloors": extract_floors_by_use(floor_data, "Commercial"),
@@ -86,14 +151,20 @@ def input_files_for_IREC_simulations(gdf):
                 "NumberOfFloorsBelowGround": min([min(floors.keys()) for floors in list(floor_data.values())])
             })
         except Exception as e:
-            print((row["building_reference"],e))
+            print((row["building_reference"], e))
 
-
-    # Assuming `df` is your original DataFrame
+    # Process the filtered GeoDataFrame
     new_df = gdf_filt.apply(process_row, axis=1)
     return new_df
 
+
 def converter_():
+    """
+    Data converter dictionary for different categories
+
+    Returns:
+    dict: Dictionary containing various data categories and their structures
+    """
     return {
         'Edad': {
             'Menos de 30 años': {},
@@ -156,10 +227,19 @@ def converter_():
         }
     }
 
+
 def plot_weather_stations(gdf, weather_clusters_column, filename):
+    """
+    Plot buildings colored by weather cluster
+
+    Parameters:
+    gdf (GeoDataFrame): Input GeoDataFrame with weather cluster data
+    weather_clusters_column (str): Name of the column containing weather cluster information
+    filename (str): Output filename for the saved plot
+    """
     fig, ax = plt.subplots(figsize=(15, 12))
 
-    # Correct GeoPandas plotting syntax
+    # Plot the GeoDataFrame with weather cluster coloring
     gdf.plot(
         ax=ax,
         column=weather_clusters_column,

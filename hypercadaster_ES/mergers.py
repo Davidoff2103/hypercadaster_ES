@@ -11,40 +11,13 @@ import sys
 import numpy as np
 import regex as re
 
-"""
-Utility functions for merging cadaster data with administrative and geographic information
-"""
-
 def make_valid(gdf):
-    """
-    Make geometries in a GeoDataFrame valid
-
-    Parameters:
-    gdf (GeoDataFrame): Input GeoDataFrame with geometry column
-
-    Returns:
-    GeoDataFrame: Input GeoDataFrame with valid geometries
-    """
     gdf.geometry = gdf.geometry.make_valid()
     return gdf
 
 
 def get_cadaster_address(cadaster_dir, cadaster_codes, directions_from_CAT_files=True, CAT_files_dir="CAT_files",
                          directions_from_open_data=True, open_data_layers_dir="open_data"):
-    """
-    Extract cadaster addresses from multiple sources
-
-    Parameters:
-    cadaster_dir (str): Directory containing cadaster data
-    cadaster_codes (list): List of cadaster codes to process
-    directions_from_CAT_files (bool): Whether to include addresses from CAT files
-    CAT_files_dir (str): Directory containing CAT files
-    directions_from_open_data (bool): Whether to include addresses from open data
-    open_data_layers_dir (str): Directory containing open data layers
-
-    Returns:
-    GeoDataFrame: Merged address data with street information
-    """
     sys.stderr.write(f"\nReading the cadaster addresses for {len(cadaster_codes)} municipalities\n")
 
     address_gdf = gpd.GeoDataFrame()
@@ -605,7 +578,6 @@ def join_DEM_raster(gdf, raster_dir):
         gdf = gdf.to_crs(ini_crs)
 
     return gdf
-
 
 def join_by_census_tracts(gdf, census_tract_dir, columns=None, geometry_column = "census_geometry", year = 2022):
 
